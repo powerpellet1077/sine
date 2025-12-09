@@ -1,0 +1,10 @@
+lameenc
+audioread
+yt-dlp
+kivy
+loguru
+beautifulsoup4
+requests
+eyeD3
+Pillow
+kivymd2
