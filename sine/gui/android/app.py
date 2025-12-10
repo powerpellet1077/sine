@@ -1,22 +1,20 @@
-from kivy import Config
+#this codebase looks like shit
+#sincerely, the developer who made it
+
 from kivy.clock import Clock
 from kivy.metrics import dp, sp
 from kivymd.app import MDApp
-from kivymd.uix.anchorlayout import MDAnchorLayout
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDIconButton, MDButtonIcon, MDButton, MDButtonText, MDFabButton
+from kivymd.uix.button import MDIconButton, MDButtonIcon, MDButton
 from kivymd.uix.card import MDCard
 from kivymd.uix.divider import MDDivider
 from kivymd.uix.filemanager import MDFileManager
-from kivymd.uix.filemanager.filemanager import MDFileManagerItem
 from kivymd.uix.floatlayout import MDFloatLayout
-from kivymd.uix.label import MDLabel, MDIcon
-from kivymd.uix.list import MDListItemLeadingIcon
+from kivymd.uix.label import MDLabel
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.stacklayout import MDStackLayout
-from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon, MDTextFieldHintText, MDTextFieldHelperText
+from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon, MDTextFieldHintText
 from os.path import expanduser
 from sine import Sine
 from sine.gui.android.label import LoggableLabel
@@ -24,6 +22,7 @@ from sine.gui.android.logger import SineGuiLogger
 from concurrent.futures import ThreadPoolExecutor
 
 class SineApp(MDApp):
+    """The interface to the sine wrapper through kivy. Not elegant but semi usable."""
     def __init__(self, root:str, **kwargs):
         super().__init__(**kwargs)
         #element placeholders
@@ -54,7 +53,7 @@ class SineApp(MDApp):
         self.theme_cls.inversePrimaryColor = [0, 0, 0, 1]
         self.theme_cls.surfaceColor = [0, 0, 0, 1]
         self.theme_cls.primary_palette = "Blue"
-        #seperated elements for retrival
+        #seperated elements for retrival + completely undocumented weird ass kivy gimmicks that require weird ass workarounds
         self.input_entry = MDTextField(  # url input
             MDTextFieldLeadingIcon(  # icon
                 icon="link-variant",
@@ -68,11 +67,6 @@ class SineApp(MDApp):
                 text_color_normal=self.theme_cls.primaryColor,
                 text_color_focus=self.theme_cls.primaryColor
             ),
-            # MDTextFieldHelperText(  # helper
-            #     text="ex: youtube.com/watch?v=dQw4w9WgXcQ",
-            #     text_color_focus=self.theme_cls.primaryColor,
-            #     text_color_normal=self.theme_cls.primaryColor
-            # ),
             mode="filled",
             theme_text_color="Custom",
             text_color_normal=self.theme_cls.primaryColor,
@@ -85,10 +79,7 @@ class SineApp(MDApp):
             fill_color_focus=self.theme_cls.backgroundColor,
             size_hint_x=None,
             width=dp(200)
-            # minimum_height=0,
-            # size_hint_x=0.5
         )
-        # self.input_entry.minimum_height=0
         self.settings_button = MDIconButton(  # settings
             icon="dots-horizontal",
             size_hint=(0.15, 0.15),
@@ -111,13 +102,13 @@ class SineApp(MDApp):
             pos_hint={"y": 0, "center_x": 0.5},
             spacing=dp(3)
         )
-        self.log_frame = MDBoxLayout(
+        self.log_frame = MDBoxLayout( #log frame
             orientation="vertical",
             size_hint_x=1,
             size_hint_y=None
         )
         self.log_frame.ignore_bgcolor=True
-        self.download_button = MDButton(
+        self.download_button = MDButton( #download button
             style="filled",
             theme_bg_color="Custom",
             radius=[3, 3, 3, 3],
@@ -127,8 +118,7 @@ class SineApp(MDApp):
             md_bg_color=self.theme_cls.primaryColor,
             on_release=lambda x: self.open_selector(),
         )
-        # self.download_button.ignore_bgcolor=True
-        self.clear_button = MDButton(
+        self.clear_button = MDButton( #clear button
             style="filled",
             theme_bg_color="Custom",
             radius=[3, 3, 3, 3],
@@ -138,22 +128,22 @@ class SineApp(MDApp):
             md_bg_color=self.theme_cls.primaryColor,
             on_release=lambda x: self.clear_entry(),
         )
-        # self.clear_button.ignore_bgcolor=True
-        Clock.schedule_once(
+
+        #reasoning for these is because the buttons resize themselves to the icon when added at the same time for some ungodly reason
+        Clock.schedule_once( #update icon
             lambda x: self.download_button.add_widget(MDButtonIcon(
             icon="download",
             theme_icon_color="Custom",
             icon_color=self.theme_cls.backgroundColor,
             pos_hint={"center_x": 0.5, "center_y": 0.5},
         )))
-        Clock.schedule_once(
+        Clock.schedule_once( #update icon
             lambda x: self.clear_button.add_widget(MDButtonIcon(
                 icon="trash-can",
                 theme_icon_color="Custom",
                 icon_color=self.theme_cls.backgroundColor,
                 pos_hint={"center_x": 0.5, "center_y": 0.5},
             )))
-        #trash-can
 
         #the screen
         self.screen = MDScreen(
@@ -177,14 +167,14 @@ class SineApp(MDApp):
                     padding=dp(0),
                     md_bg_color=[1,0,0,1]
                 ),
-                MDDivider(
+                MDDivider( #seperator
                     orientation="horizontal",
                     color=self.theme_cls.primaryColor
                 ),
                 MDFloatLayout( #log layout
-                    MDCard(
-                        MDFloatLayout(
-                            MDScrollView(
+                    MDCard( #outer card (for border)
+                        MDFloatLayout( #i forgot why this is here :P
+                            MDScrollView( #scrollview
                                 self.log_frame,
                                 do_scroll_x=False,
                                 do_scroll_y=True,
@@ -241,8 +231,6 @@ class SineApp(MDApp):
             else:
                 self.config.set("sine", "lighting", self.theme_cls.theme_style)
             self.config.write()
-        else:
-            print("dfdsfsduf")
         self.screen.md_bg_color = self.theme_cls.backgroundColor
         if self.appearance_menu:
             self.appearance_menu.dismiss()
@@ -348,49 +336,47 @@ class SineApp(MDApp):
         )
         self.configuration_menu.open()
 
-    def format_wid(self, wid):
-        for dec in (
-            ("text_color", self.theme_cls.primaryColor, None, MDButtonIcon),
-            ("color", self.theme_cls.primaryColor, None, MDButtonIcon),
-            ("md_bg_color", self.theme_cls.backgroundColor, None, (MDLabel, MDButton)),
-            ("md_bg_color", self.theme_cls.primaryColor, MDButton),
-            ("text_color_normal", self.theme_cls.primaryColor),
-            ("text_color_focus", self.theme_cls.primaryColor),
-            ("theme_text_color", "Custom"),
-            ("theme_line_color", "Custom"),
-            ("line_color", self.theme_cls.primaryColor, MDCard),
-            ("line_color_focus", self.theme_cls.primaryColor),
-            ("line_color_normal", self.theme_cls.primaryColor),
-            ("theme_bg_color", "Custom"),
-            ("fill_color_normal", self.theme_cls.backgroundColor),
-            ("fill_color_focus", self.theme_cls.backgroundColor),
-            ("leading_icon_color", self.theme_cls.primaryColor),
-            ("theme_icon_color", "Custom"),
-            ("icon_color_focus", self.theme_cls.primaryColor),
-            ("icon_color_normal", self.theme_cls.primaryColor),
-            ("title_color", self.theme_cls.primaryColor),
-            ("specific_text_color", self.theme_cls.primaryColor),
-            ("background_color_toolbar", self.theme_cls.backgroundColor),
-            ("background_color_selection_button", self.theme_cls.backgroundColor, None, MDFileManager),
-            ("icon_color", self.theme_cls.primaryColor, None, MDButtonIcon),
-            ("icon_color", self.theme_cls.backgroundColor, MDButtonIcon),
-            ("divider_color", self.theme_cls.primaryColor),
-            ("md_bg_color_disabled", self.theme_cls.backgroundColor),
-            ("font_name", self.rt+"/sine/gui/assets/jbm.ttf", LoggableLabel)
+    def format_wid(self, wid): #I wanted midnight mode. this is sadly required for any custom theme it appears.
+        for dec in ( #sorted for elegance
+                ("background_color_selection_button", self.theme_cls.backgroundColor, None, MDFileManager),
+                ("background_color_toolbar", self.theme_cls.backgroundColor),
+                ("color", self.theme_cls.primaryColor, None, MDButtonIcon),
+                ("divider_color", self.theme_cls.primaryColor),
+                ("fill_color_focus", self.theme_cls.backgroundColor),
+                ("fill_color_normal", self.theme_cls.backgroundColor),
+                ("font_name", self.rt + "/sine/gui/assets/jbm.ttf", LoggableLabel),
+                ("icon_color", self.theme_cls.backgroundColor, MDButtonIcon),
+                ("icon_color", self.theme_cls.primaryColor, None, MDButtonIcon),
+                ("icon_color_focus", self.theme_cls.primaryColor),
+                ("icon_color_normal", self.theme_cls.primaryColor),
+                ("leading_icon_color", self.theme_cls.primaryColor),
+                ("line_color", self.theme_cls.primaryColor, MDCard),
+                ("line_color_focus", self.theme_cls.primaryColor),
+                ("line_color_normal", self.theme_cls.primaryColor),
+                ("md_bg_color", self.theme_cls.backgroundColor, None, (MDLabel, MDButton)),
+                ("md_bg_color", self.theme_cls.primaryColor, MDButton),
+                ("md_bg_color_disabled", self.theme_cls.backgroundColor),
+                ("specific_text_color", self.theme_cls.primaryColor),
+                ("text_color", self.theme_cls.primaryColor, None, MDButtonIcon),
+                ("text_color_focus", self.theme_cls.primaryColor),
+                ("text_color_normal", self.theme_cls.primaryColor),
+                ("theme_bg_color", "Custom"),
+                ("theme_icon_color", "Custom"),
+                ("theme_line_color", "Custom"),
+                ("theme_text_color", "Custom"),
+                ("title_color", self.theme_cls.primaryColor),
+
         ):
             if not ((hasattr(wid, "ignore_decolor") and dec[0] == "text_color") or (hasattr(wid, "ignore_bgcolor") and dec[0]=="md_bg_color")):
                 if len(dec) == 4:
                     if hasattr(wid, dec[0]) and not isinstance(wid, dec[3]):
                         setattr(wid, dec[0], dec[1])
-                        print(f"changed {wid} {dec[0]} to {dec[1]}")
                 elif len(dec) == 3:
                     if hasattr(wid, dec[0]) and isinstance(wid, dec[2]):
                         setattr(wid, dec[0], dec[1])
-                        print(f"changed {wid} {dec[0]} to {dec[1]}")
                 else:
                     if hasattr(wid, dec[0]):
                         setattr(wid, dec[0], dec[1])
-                        print(f"changed {wid} {dec[0]} to {dec[1]}")
         return wid
 
 
@@ -423,10 +409,6 @@ class SineApp(MDApp):
         else:
             self.fm.show(expanduser("~"))
         Clock.schedule_once(lambda x: self.tree_format(self.fm))
-
-    def set_attr(self, obj, ref, val):
-        if hasattr(obj, ref):
-            setattr(obj, ref, val)
 
 
     def tree_format(self, wid):

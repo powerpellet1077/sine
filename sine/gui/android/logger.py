@@ -1,11 +1,9 @@
-from kivymd.uix.label import MDLabel
-from kivymd.uix.stacklayout import MDStackLayout
 from loguru._logger import Logger, Core
-from sys import exit, stdout
 from sine.gui.android.constants import *
 
 
 class SineGuiLogger(Logger):
+    """modified SineLogger to interface directly through the kivy application instead of through the console"""
     def __init__(self, log):
         super().__init__(
             Core(),
@@ -19,10 +17,7 @@ class SineGuiLogger(Logger):
             patchers=[],
             extra={}
         )
-        self.add(
-            self.__sine_sink__,
-            # format=f"[[{{level}}]]{kv_yfg}[[*func*]]{kv_close} {{message}}"
-        )
+        self.add(self.__sine_sink__)
         self.level("WARNING")
         self.level("ERROR")
         self.level("INFO")
@@ -41,7 +36,6 @@ class SineGuiLogger(Logger):
               "DEBUG": kv_blue}[level]
         return mu+text+kv_close
 
-    #https://www.youtube.com/watch?v=OZ04Q6nfLMg&list=RDMnpgsP46tGk&index=2&pp=8AUB
     def __sine_sink__(self, message):
         self.log(((self._color_with_level("<"+message.record["level"].name+">" ,message.record["level"].name)+
             kv_yellow+
