@@ -5,8 +5,13 @@ from PIL import Image
 from io import BytesIO
 
 class Cover(Loggable):
-    """cover helper class, stores an image and automatically crops and adjusts it for best functionality"""
-    def __init__(self, url:str|LiteralString, mime:Literal["image/jpeg", "image/png"], name="cover", icon:bool=False, data:bytes=None, erase_bg:int=0, **kwargs):
+    """cover helper class, stores an image and automatically crops and adjusts it for best functionality
+    
+    name = The assigned name to the cover. used for logging.
+    icon = iconifies image in initalization
+    data = provide raw image data. used mostly for internal use
+    erase_bg = in development and not perfect. attempts to automatically fix the background when not aligned properly in the youtube thumbnail. (-1 = disable, 0 = auto, 1 = erase no matter what)"""
+    def __init__(self, url:str|LiteralString, mime:Literal["image/jpeg", "image/png"], name="cover", icon:bool=False, data:bytes=None, erase_bg:int=-1, **kwargs):
         super().__init__(**kwargs)
         self.url = url
         self.name: str = name
@@ -19,11 +24,10 @@ class Cover(Loggable):
             self.bin = data
         if erase_bg==0:
             iavg = self._get_img_avg()
-            print(iavg)
             if self._check_color(iavg, 60, 0):
-                self.erase(25, 0)
+                self.auto_crop(25, 0)
         elif erase_bg==1:
-            self.erase()
+            self.auto_crop()
         self.crop()
         self.recode(mime)
         if icon:
@@ -92,8 +96,8 @@ class Cover(Loggable):
         return avg_r, avg_b, avg_g
 
 
-    def erase(self, hi=200, lo=0):
-        """erases all of a range between two colors (such as the background)"""
+    def auto_crop(self, hi=20, lo=0):
+        """attempts to automatically crop out pixels within a range of color"""
         self.info(f"erasing the bg of {self.name} cover..")
         im = Image.open(BytesIO(self.bin))
         r = 0 #right
@@ -128,19 +132,18 @@ class Cover(Loggable):
 
     def recode(self, mime:Literal["image/jpeg", "image/png"]):
         """recodes the saved image to a new file format"""
+        im = Image.open(BytesIO(self.bin))
         if mime=="image/jpeg":
             self.info(f"recoding {self.name} to jpeg...")
-            im = Image.open(BytesIO(self.bin))
             self.mime=self._write(im)
-            self.mime = mime
-            self.info("recoded :D")
         elif mime=="image/png":
             self.info(f"recoding {self.name} to png...")
-            im = Image.open(BytesIO(self.bin))
             self.mime=self._write(im, fm="png")
-            self.mime=mime
-            self.info("recoded :D")
+        else:
+            return 0
+        self.info("recoded :D")
 
+    
     def iconify(self):
         """changes the image to be a 32x32 image. created because sometimes windows does not like icons above 32x32 dimensions. not recommended for generic usage"""
         self.info(f"iconifying {self.name}")
