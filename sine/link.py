@@ -7,15 +7,22 @@ class Link(Loggable):
     def __init__(self, link:LiteralString|str, **kwargs):
         super().__init__(**kwargs)
         self.link = link
+        self.id = None
 
     def strip(self):
-        BASE = "youtube.com/watch?v="
+        BASE = "youtube.com/watch"
+        VAR = "v="
         i = self.link.find(BASE)
         if i!=-1:
-            ref = self.link[i+len(BASE):] #refined
-            pol = ref.split("&")[0] #polished
-            self.info(f"isolated id [{pol}]")
-            return "https://"+BASE+pol
+            v = self.link.find(VAR)
+            if v!=-1:
+                ref = self.link[v+len(VAR):] #refined
+                pol = ref.split("&")[0] #polished
+                self.info(f"isolated id [{pol}]")
+                self.id=pol
+                return "https://"+BASE+pol
+            else:
+                self.failure(f"unable to strip url. no video tag '{VAR}' was found inside the url")
         else:
             self.failure(f"unable to strip url. no base '{BASE}' was found inside the url")
 

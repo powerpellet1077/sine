@@ -18,11 +18,16 @@ class Site(Loggable):
         self.info("requesting player...")
         self.g = get(str(self.url))
 
-    def obtain_metadata(self):
+
+    def obtain_metadata(self, _debug_dump:bool=False):
+        """scrapes the target site specified and returns a Metadata item"""
         self.reload()
         if self.g.status_code==200:
             self.info("parsing meta...")
             bs = BeautifulSoup(self.g.content, features="html.parser")
+            if _debug_dump:
+                with open("./dump.html", "w", encoding="utf-8") as f:
+                    f.write(bs.prettify())
             title_meta = bs.find("meta", {"name":"title"})
             if not title_meta:
                 self.warn("unable to obtain reference to title, please expect no title meta :(")
