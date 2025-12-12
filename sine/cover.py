@@ -1,4 +1,4 @@
-from typing import LiteralString, Literal
+from typing import LiteralString, Literal, Tuple
 from requests import get
 from sine.loggable import Loggable
 from PIL import Image
@@ -8,29 +8,44 @@ class Cover(Loggable):
     """cover helper class, stores an image and automatically crops and adjusts it for best functionality
     
     name = The assigned name to the cover. used for logging.
-    icon = iconifies image in initalization
+    icon = iconify image in initialization
     data = provide raw image data. used mostly for internal use
-    erase_bg = in development and not perfect. attempts to automatically fix the background when not aligned properly in the youtube thumbnail. (-1 = disable, 0 = auto, 1 = erase no matter what)"""
-    def __init__(self, url:str|LiteralString, mime:Literal["image/jpeg", "image/png"], name="cover", icon:bool=False, data:bytes=None, erase_bg:int=-1, **kwargs):
+    iconify = reduces size of image to 32x32 and applies an icon tag. I thought it would need this during development but I in fact did not.
+    resize_to = if the image is resized, it will resize to width and height of this value
+    the rest of the arguments are self-explanatory"""
+    def __init__(self, url:str|LiteralString,
+                 mime:Literal["image/jpeg", "image/png"],
+                 name="cover",
+                 iconify:bool=False,
+                 data:bytes=None,
+                 resize_to:int=360,
+                 do_crop:bool=True,
+                 do_autocrop:bool=True,
+                 do_resize:bool=True, **kwargs):
         super().__init__(**kwargs)
         self.url = url
         self.name: str = name
         self.bin: bytes|None = None
         self.mime: Literal["image/jpeg", "image/png"] = mime
-        self.icon:bool=icon
+        self.icon:bool=iconify
         if not data:
             self.fetch()
         else:
             self.bin = data
-        if erase_bg==0:
-            iavg = self._get_img_avg()
-            if self._check_color(iavg, 60, 0):
-                self.auto_crop(25, 0)
-        elif erase_bg==1:
-            self.auto_crop()
-        self.crop()
+        if do_crop:
+            if do_autocrop: #OMG ITS FIXED :DD
+                v = self.vibrancy()
+                if v>=45:
+                    self.info("vibrancy check passed, auto cropping...")
+                    self.auto_crop(vibrancy=v)
+                else:
+                    self.warn("vibrancy check failed, will not auto crop")
+            self.crop()
+        if do_resize:
+            if self.get_width() < resize_to or self.get_height() < resize_to:
+                self.resize(to=(resize_to, resize_to))
         self.recode(mime)
-        if icon:
+        if iconify:
             self.iconify()
 
     def fetch(self) -> None:
@@ -42,7 +57,7 @@ class Cover(Loggable):
         else:
             self.err("unable to fetch cover, status code " + str(resp.status_code))
 
-    def crop(self):
+    def crop(self) -> None:
         """crops the cover in a square from the center to make icons that are nice to look at"""
         self.info(f"cropping {self.name} cover..")
         im = Image.open(BytesIO(self.bin))
@@ -54,7 +69,7 @@ class Cover(Loggable):
         self.mime=self._write(im)
         self.info("cropped :D")
 
-    def _check_color(self, c, hi, lo):
+    def _check_color(self, c, hi, lo) -> bool:
         """checks a single color between a high and low range"""
         cmap = [True, True, True]
         for i in range(len(c)):
@@ -67,38 +82,51 @@ class Cover(Loggable):
             return False #invalid pixel
 
 
-    def _get_img_avg(self, filter=15):
+    def _get_img_avg(self) -> Tuple[float|int, float|int, float|int]:
         """gets the average of every color in the image"""
         im = Image.open(BytesIO(self.bin))
         p = im.load()
         r = 0
         b = 0
         g = 0
-        unac = 0 #unaccounted
         for x in range(im.width):
             for y in range(im.height):
                 pix = p[x, y]
-                if filter!=-1:
-                    if not self._check_color(pix, filter, 0):
-                        r+=pix[0]
-                        b+=pix[1]
-                        g+=pix[2]
-                    else:
-                        unac+=1
-                else:
-                    r+=pix[0]
-                    b+=pix[1]
-                    g+=pix[2]
+                r+=pix[0]
+                b+=pix[1]
+                g+=pix[2]
         area = im.width*im.height
-        avg_r = r/(area-unac)
-        avg_b = b/(area-unac)
-        avg_g = g/(area-unac)
+        avg_r = r/area
+        avg_b = b/area
+        avg_g = g/area
         return avg_r, avg_b, avg_g
 
+    def vibrancy(self) -> float|int:
+        """the overall vibrancy of the image. used internally
 
-    def auto_crop(self, hi=20, lo=0):
+        fyi vibrancy means the averaged color of every color in the image, with all three values averaged"""
+        return sum(self._get_img_avg())/3
+
+    def _get_color_average(self, color) -> float|int:
+        return sum(color)/3
+
+    def resize(self, to:Tuple[float, float]|None=None, by:float|int|None=None) -> None:
+        """makes images sometimes look nicer by scaling them up"""
+        im = Image.open(BytesIO(self.bin))
+        if to:
+            self.info(f"resizing cover {self.name} to {to}..")
+            im = im.resize(to)
+        elif by:
+            self.info(f"resizing cover {self.name} by {by}x..")
+            im = im.resize(im.width*by, im.height*by)
+        else:
+            self.failure("did not declare to or by when calling resize, halted")
+        self.mime=self._write(im)
+        self.info("resized :D")
+
+    def auto_crop(self, vibrancy:float|int) -> None:
         """attempts to automatically crop out pixels within a range of color"""
-        self.info(f"erasing the bg of {self.name} cover..")
+        self.info(f"auto cropping {self.name} cover..")
         im = Image.open(BytesIO(self.bin))
         r = 0 #right
         t = im.height #top
@@ -107,7 +135,7 @@ class Cover(Loggable):
         p = im.load()
         for x in range(im.width): #note to self. check if pillow starts from bottom-left or top-left before spending an hour debugging.
             for y in range(im.height):
-                if self._check_color(p[x, y], hi, lo):
+                if self._get_color_average(p[x, y]) > vibrancy*1.3:
                     if x < l:
                         l=x
                     if x > r:
@@ -116,9 +144,9 @@ class Cover(Loggable):
                         t=y
                     if y > b:
                         b=y
-        im=im.crop((l,t,r+1,b+1))
+        im=im.crop((l,t,r,b))
         self.mime=self._write(im)
-        self.info(f"erased :D")
+        self.info("autocropped :D")
 
     def _write(self, im:Image, fm:str="jpeg"):
         """saves image to binary"""
@@ -129,6 +157,21 @@ class Cover(Loggable):
             return "image/png"
         else:
             return "image/jpeg"
+
+    def get_width(self) -> int:
+        """get width of image"""
+        im = Image.open(BytesIO(self.bin))
+        return im.width
+
+    def get_height(self) -> int:
+        """get height of image"""
+        im = Image.open(BytesIO(self.bin))
+        return im.height
+
+    def get_size(self) -> Tuple[int, int]:
+        """get width and height of image"""
+        im =  Image.open(BytesIO(self.bin))
+        return im.width, im.height
 
     def recode(self, mime:Literal["image/jpeg", "image/png"]):
         """recodes the saved image to a new file format"""
@@ -162,9 +205,9 @@ class Cover(Loggable):
     def clone(self, name=None):
         """creates a copy containing the roughly same metadata within"""
         if name:
-            return Cover(self.url, self.mime, data=self.bin, icon=self.icon, name=name)
+            return Cover(self.url, self.mime, data=self.bin, iconify=self.icon, name=name)
         else:
-            return Cover(self.url, self.mime, data=self.bin, icon=self.icon, name=self.name)
+            return Cover(self.url, self.mime, data=self.bin, iconify=self.icon, name=self.name)
 
     def save_cover(self, path:str):
         """saves the modified cover as a file to a new location"""
