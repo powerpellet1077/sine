@@ -1,10 +1,14 @@
+#core (required for sine to function at all)
 lameenc
 audioread
 yt-dlp
-kivy
 loguru
 beautifulsoup4
 requests
 eyeD3
 Pillow
+#android gui
+kivy
 kivymd2
+#desktop gui
+ttkbootstrap

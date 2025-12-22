@@ -33,7 +33,7 @@ class Sine:
         output_directory = directory where output will be stored. this outputs a temporary m4a file and then converts to a tagged mp3 file. if empty will default to the current relative path of sine"""
         t = time()
         if self.logger:
-            self.logger.info("sine | made by powerpellet1077")
+            self.logger.info("sine started!")
 
         try:
             meta = Site(logger=self.logger, url=url).obtain_metadata()

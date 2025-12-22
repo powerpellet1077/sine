@@ -5,7 +5,7 @@ from sine.loggable import Loggable
 from sine.metadata import Metadata
 from bs4 import BeautifulSoup
 from typing import LiteralString
-from requests import get
+from requests import Session
 from datetime import datetime
 
 class Site(Loggable):
@@ -13,11 +13,11 @@ class Site(Loggable):
     def __init__(self, url:str|LiteralString|Link=sickass_placeholder_url, **kwargs):
         super().__init__(**kwargs)
         self.url = url
+        self.session = Session()
 
     def reload(self):
         self.info("requesting player...")
-        self.g = get(str(self.url))
-
+        self.g = self.session.get(str(self.url))
 
     def obtain_metadata(self, _debug_dump:bool=False):
         """scrapes the target site specified and returns a Metadata item"""
@@ -42,7 +42,7 @@ class Site(Loggable):
             artist_cover_meta = None
             if channel_link_meta:
                 self.info("requesting channel...")
-                cg = get(channel_link_meta.get("href"))
+                cg = self.session.get(channel_link_meta.get("href"))
                 if cg.status_code==200:
                     bs_two = BeautifulSoup(cg.content, features="html.parser")
                     artist_cover_meta = bs_two.find("link", {"itemprop": "thumbnailUrl"})
@@ -68,7 +68,7 @@ class Site(Loggable):
                 m.cover = Cover(thumb_meta.get("href"), "image/jpeg", logger=self._logger, name="front")
                 m.icon = m.cover.clone(name="thumbnail")
             if artist_cover_meta:
-                m.artist_cover = Cover(artist_cover_meta.get("href"), "image/png", logger=self._logger, name="artist")
+                m.artist_cover = Cover(artist_cover_meta.get("href"), "image/png", logger=self._logger, name="artist", do_autocrop=False)
             if time_meta:
                 time_meta_con = datetime.fromisoformat(time_meta.get("content"))
                 m.year_created = time_meta_con.year

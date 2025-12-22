@@ -35,6 +35,7 @@ class Cover(Loggable):
         if do_crop:
             if do_autocrop: #OMG ITS FIXED :DD
                 v = self.vibrancy()
+                self.info(f"vibrancy of cover {self.name} is {round(v, 2)}")
                 if v>=45:
                     self.info("vibrancy check passed, auto cropping...")
                     self.auto_crop(vibrancy=v)
@@ -67,7 +68,6 @@ class Cover(Loggable):
         right = cent+h/2
         im = im.crop((left, 0, right, h))
         self.mime=self._write(im)
-        self.info("cropped :D")
 
     def _check_color(self, c, hi, lo) -> bool:
         """checks a single color between a high and low range"""
@@ -82,20 +82,32 @@ class Cover(Loggable):
             return False #invalid pixel
 
 
-    def _get_img_avg(self) -> Tuple[float|int, float|int, float|int]:
-        """gets the average of every color in the image"""
+    def _get_img_avg(self, filter:int=5, filter_case:int=25) -> Tuple[float|int, float|int, float|int]:
+        """gets the average of every color in the image
+        filter and filter case represent the color avg that is filtered out and under what 'case' it is (case represents distance from edge here)"""
         im = Image.open(BytesIO(self.bin))
         p = im.load()
         r = 0
         b = 0
         g = 0
+        unac = 0
         for x in range(im.width):
             for y in range(im.height):
                 pix = p[x, y]
-                r+=pix[0]
-                b+=pix[1]
-                g+=pix[2]
-        area = im.width*im.height
+                if x <= filter_case or x >= im.width-filter_case: #x check
+                    edge_pixel = True
+                elif y <= filter_case or y >= im.height-filter_case: #y check
+                    edge_pixel = True
+                else:
+                    edge_pixel = False
+                ca = self._get_color_average(pix)
+                if ca > filter and not edge_pixel:
+                    r+=pix[0]
+                    b+=pix[1]
+                    g+=pix[2]
+                else:
+                    unac+=1
+        area = (im.width*im.height)-unac
         avg_r = r/area
         avg_b = b/area
         avg_g = g/area
@@ -122,31 +134,28 @@ class Cover(Loggable):
         else:
             self.failure("did not declare to or by when calling resize, halted")
         self.mime=self._write(im)
-        self.info("resized :D")
 
     def auto_crop(self, vibrancy:float|int) -> None:
         """attempts to automatically crop out pixels within a range of color"""
         self.info(f"auto cropping {self.name} cover..")
         im = Image.open(BytesIO(self.bin))
-        r = 0 #right
-        t = im.height #top
-        b = 0 #bottom
-        l = im.width #left
+        l, t = im.width, im.height #left, top
+        r, b = 0, 0 #right, bottom
         p = im.load()
         for x in range(im.width): #note to self. check if pillow starts from bottom-left or top-left before spending an hour debugging.
             for y in range(im.height):
-                if self._get_color_average(p[x, y]) > vibrancy*1.3:
-                    if x < l:
-                        l=x
-                    if x > r:
-                        r=x
-                    if y < t:
-                        t=y
-                    if y > b:
-                        b=y
+                if self._get_color_average(p[x, y]) < vibrancy:
+                    if x < l and x < im.width/2:
+                        l=min(l, x)
+                    if x > r and x > im.width/2:
+                        r=max(r, x)
+                    if y < t and y < im.height/2:
+                        t=min(t, y)
+                    if y > b and y > im.height/2:
+                        b=max(b, y)
+        self.info(f"cropping from {im.width}x{im.height} -> {r}x{b}")
         im=im.crop((l,t,r,b))
         self.mime=self._write(im)
-        self.info("autocropped :D")
 
     def _write(self, im:Image, fm:str="jpeg"):
         """saves image to binary"""
@@ -184,19 +193,17 @@ class Cover(Loggable):
             self.mime=self._write(im, fm="png")
         else:
             return 0
-        self.info("recoded :D")
 
     
     def iconify(self):
         """changes the image to be a 32x32 image. created because sometimes windows does not like icons above 32x32 dimensions. not recommended for generic usage"""
         self.info(f"iconifying {self.name}")
         im = Image.open(BytesIO(self.bin))
-        im.resize((32, 32))
+        im = im.resize((32, 32))
         if self.mime=="image/png":
             self.mime=self._write(im, fm="png")
         else:
             self.mime=self._write(im)
-        self.info("done :D")
 
     def get(self):
         """returns binary data of image"""

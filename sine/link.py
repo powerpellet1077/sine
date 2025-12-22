@@ -20,7 +20,7 @@ class Link(Loggable):
                 pol = ref.split("&")[0] #polished
                 self.info(f"isolated id [{pol}]")
                 self.id=pol
-                return "https://"+BASE+pol
+                return "https://"+BASE+"?v="+pol
             else:
                 self.failure(f"unable to strip url. no video tag '{VAR}' was found inside the url")
         else:
