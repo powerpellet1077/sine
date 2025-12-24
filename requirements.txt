@@ -1,14 +1,14 @@
 #core (required for sine to function at all)
-lameenc
-audioread
+lameenc~=1.8.1
+audioread~=3.1.0
 yt-dlp
-loguru
-beautifulsoup4
-requests
-eyeD3
-Pillow
+loguru~=0.7.3
+beautifulsoup4~=4.14.3
+requests~=2.32.5
+eyeD3~=0.9.9
+Pillow~=12.0.0
 #android gui
-kivy
-kivymd2
+kivy~=2.3.1
+kivymd2~=2.0.1
 #desktop gui
-ttkbootstrap
+ttkbootstrap~=1.19.2
